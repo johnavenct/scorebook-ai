@@ -1,0 +1,127 @@
+import React, { useState } from "react";
+import { View, Text, Button, Image, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
+import * as ImagePicker from "expo-image-picker";
+
+// Mock stats data; replace with your OCR output later
+const sampleStats = [
+  { id: "1", player: "John Doe", Runs: 2, RBI: 3, HR: 1, SB: 0, BB: 1, SO: 2 },
+  { id: "2", player: "Alex Smith", Runs: 1, RBI: 1, HR: 0, SB: 2, BB: 0, SO: 1 },
+  { id: "3", player: "Samantha Lee", Runs: 0, RBI: 0, HR: 0, SB: 0, BB: 2, SO: 0 },
+];
+
+export default function App() {
+  const [image, setImage] = useState(null);
+  const [stats, setStats] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const pickImage = async (fromCamera = false) => {
+    let result;
+    if (fromCamera) {
+      result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 1,
+      });
+    } else {
+      result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 1,
+      });
+    }
+    if (!result.cancelled) {
+      setImage(result.uri);
+      setLoading(true);
+      // Simulate OCR + parsing delay
+      setTimeout(() => {
+        setStats(sampleStats);
+        setLoading(false);
+      }, 1500);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Scorebook Stats Extractor</Text>
+      {!image && (
+        <View style={styles.buttonRow}>
+          <TouchableOpacity style={styles.button} onPress={() => pickImage(false)}>
+            <Text style={styles.buttonText}>Upload Image</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.button} onPress={() => pickImage(true)}>
+            <Text style={styles.buttonText}>Take Photo</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      {image && (
+        <View style={styles.imageSection}>
+          <Image source={{ uri: image }} style={styles.imagePreview} />
+          <TouchableOpacity style={styles.retakeButton} onPress={() => { setImage(null); setStats([]); }}>
+            <Text style={styles.retakeText}>Retake</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      {loading && <ActivityIndicator size="large" color="#0057B8" style={{ margin: 20 }} />}
+      {stats.length > 0 && !loading && (
+        <View style={styles.tableContainer}>
+          <FlatList
+            data={stats}
+            keyExtractor={(item) => item.id}
+            ListHeaderComponent={
+              <View style={[styles.row, styles.headerRow]}>
+                <Text style={styles.headerCell}>Player</Text>
+                <Text style={styles.headerCell}>Runs</Text>
+                <Text style={styles.headerCell}>RBI</Text>
+                <Text style={styles.headerCell}>HR</Text>
+                <Text style={styles.headerCell}>SB</Text>
+                <Text style={styles.headerCell}>BB</Text>
+                <Text style={styles.headerCell}>SO</Text>
+              </View>
+            }
+            renderItem={({ item }) => (
+              <View style={styles.row}>
+                <Text style={styles.cell}>{item.player}</Text>
+                <Text style={styles.cell}>{item.Runs}</Text>
+                <Text style={styles.cell}>{item.RBI}</Text>
+                <Text style={styles.cell}>{item.HR}</Text>
+                <Text style={styles.cell}>{item.SB}</Text>
+                <Text style={styles.cell}>{item.BB}</Text>
+                <Text style={styles.cell}>{item.SO}</Text>
+              </View>
+            )}
+          />
+        </View>
+      )}
+      {image && stats.length === 0 && !loading && (
+        <TouchableOpacity style={styles.extractButton} onPress={() => {
+          setLoading(true);
+          setTimeout(() => {
+            setStats(sampleStats);
+            setLoading(false);
+          }, 1500);
+        }}>
+          <Text style={styles.extractButtonText}>Extract Stats</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 24, backgroundColor: "#F7F7F7" },
+  title: { fontSize: 24, fontWeight: "bold", marginBottom: 32, color: "#0057B8", alignSelf: "center" },
+  buttonRow: { flexDirection: "row", justifyContent: "space-around", marginBottom: 36 },
+  button: { backgroundColor: "#0057B8", padding: 16, borderRadius: 10, marginHorizontal: 6 },
+  buttonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  imageSection: { alignItems: "center", marginBottom: 16 },
+  imagePreview: { width: 280, height: 180, borderRadius: 16, marginTop: 4 },
+  retakeButton: { backgroundColor: "#FFCB05", padding: 8, borderRadius: 8, marginTop: 8 },
+  retakeText: { color: "#222", fontWeight: "bold" },
+  extractButton: { backgroundColor: "#0057B8", padding: 16, borderRadius: 10, marginTop: 16, alignSelf: "center" },
+  extractButtonText: { color: "#fff", fontWeight: "bold", fontSize: 16 },
+  tableContainer: { marginTop: 24, backgroundColor: "#fff", borderRadius: 12, padding: 8, elevation: 1 },
+  row: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 6, borderBottomWidth: 0.5, borderColor: "#eee" },
+  headerRow: { backgroundColor: "#E8F0FE", borderBottomWidth: 1 },
+  headerCell: { flex: 1, fontWeight: "bold", textAlign: "center", color: "#0057B8" },
+  cell: { flex: 1, textAlign: "center", color: "#333" },
+});
